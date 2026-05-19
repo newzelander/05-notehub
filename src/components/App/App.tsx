@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
+import { useQuery } from "@tanstack/react-query";
 import { useDebouncedCallback } from "use-debounce";
 
 import SearchBox from "../SearchBox/SearchBox";
@@ -10,20 +9,15 @@ import NoteList from "../NoteList/NoteList";
 import Modal from "../Modal/Modal";
 import NoteForm from "../NoteForm/NoteForm";
 
-import { fetchNotes, deleteNote } from "../../services/noteService";
+import { fetchNotes } from "../../services/noteService";
 
 import css from "./App.module.css";
 
 export default function App() {
   const [page, setPage] = useState(1);
-
   const [inputValue, setInputValue] = useState("");
-
   const [search, setSearch] = useState("");
-
   const [modal, setModal] = useState(false);
-
-  const queryClient = useQueryClient();
 
   const handleSearch = useDebouncedCallback((value: string) => {
     setSearch(value);
@@ -32,25 +26,13 @@ export default function App() {
 
   const { data } = useQuery({
     queryKey: ["notes", page, search],
-
     queryFn: () =>
       fetchNotes({
         page,
         search,
         perPage: 12,
       }),
-
     placeholderData: (prev) => prev,
-  });
-
-  const mutation = useMutation({
-    mutationFn: deleteNote,
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["notes"],
-      });
-    },
   });
 
   return (
@@ -65,7 +47,11 @@ export default function App() {
         />
 
         {data && data.totalPages > 1 && (
-          <Pagination pageCount={data.totalPages} onPageChange={setPage} />
+          <Pagination
+            pageCount={data.totalPages}
+            currentPage={page}
+            onPageChange={(selectedPage: number) => setPage(selectedPage)}
+          />
         )}
 
         <button className={css.button} onClick={() => setModal(true)}>
@@ -73,9 +59,7 @@ export default function App() {
         </button>
       </header>
 
-      {data && data.notes.length > 0 && (
-        <NoteList notes={data.notes} onDelete={(id) => mutation.mutate(id)} />
-      )}
+      {data && data.notes.length > 0 && <NoteList notes={data.notes} />}
 
       {modal && (
         <Modal onClose={() => setModal(false)}>
